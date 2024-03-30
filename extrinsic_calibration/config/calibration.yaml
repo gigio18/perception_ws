@@ -1,0 +1,18 @@
+extrinsic_calib_node:
+  ros__parameters:
+    visualization: true
+    topic1: "/right/velodyne_points"
+    topic2: "/left/velodyne_points"
+    filepath: "src/extrinsic_calibration/config/matrix.yaml"
+    min_roi: [5.0, -5.0]
+    max_roi: [13.0, 5.0]
+    # Filters parameters
+    num_of_neighbors: 200
+    std_deviation: 1.5 
+    # Segmentation parameters
+    dist_threshold: 0.001
+    sac_max_iter: 1000
+    # ICP parameters
+    icp_max_iter: 500
+    icp_tf_eps: 0.000001
+    icp_euclidean_fit_eps: 0.000001
