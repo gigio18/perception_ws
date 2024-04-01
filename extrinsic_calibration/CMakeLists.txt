@@ -39,7 +39,10 @@ ament_export_include_directories(include)
 
 ament_target_dependencies(extrinsic ${dependencies})
 
-target_link_libraries(extrinsic ${PCL_LIBRARIES} ${YAML_CPP_LIBRARIES})
+target_link_libraries(extrinsic 
+  ${PCL_LIBRARIES} 
+  ${YAML_CPP_LIBRARIES}
+)
 
 # Install executable
 install(TARGETS 

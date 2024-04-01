@@ -43,15 +43,15 @@ namespace extrinsic
 	    yaw_ = 0.0;
             
         // Associate the subscriptions to the topics
-        sensor1_sub_ = std::make_shared<message_filters::Subscriber<pointcloud2>>(this, sensor1_topic_);
-        sensor2_sub_ = std::make_shared<message_filters::Subscriber<pointcloud2>>(this, sensor2_topic_);
+        sensor1_sub_ = std::make_shared<message_filters::Subscriber<PointCloud2>>(this, sensor1_topic_);
+        sensor2_sub_ = std::make_shared<message_filters::Subscriber<PointCloud2>>(this, sensor2_topic_);
         sensor_sync_ = std::make_shared<sensor_sync>(sensor_policy(10), *sensor1_sub_, *sensor2_sub_);
         sensor_sync_->registerCallback(
             std::bind(&CalibNode::sensorsCallback, this, std::placeholders::_1, std::placeholders::_2));
 
-        rviz_cloud1_pub_ = create_publisher<pointcloud2>("left_cloud", 10);
-        rviz_cloud2_pub_ = create_publisher<pointcloud2>("right_cloud", 10);
-        rviz_combined_pub_ = create_publisher<pointcloud2>("combined_cloud", 10);
+        rviz_cloud1_pub_ = create_publisher<PointCloud2>("left_cloud", 10);
+        rviz_cloud2_pub_ = create_publisher<PointCloud2>("right_cloud", 10);
+        rviz_combined_pub_ = create_publisher<PointCloud2>("combined_cloud", 10);
     }
             
     CalibNode::~CalibNode()
@@ -59,6 +59,9 @@ namespace extrinsic
         RCLCPP_INFO(get_logger(), "Finish the extrinsic calibration process!");
     }
 
+    /**
+     * @brief Assign the initial guess values for extrinsic matrix
+     */
     void CalibNode::initializeMatrix()
     {
         if (std::ifstream(filepath_).good())
@@ -99,8 +102,14 @@ namespace extrinsic
         }
     }
 
+    /**
+     * @brief Preprocessing step the sensors point cloud data
+     * 
+     * @param sensor_msg : ROS2 PointCloud2 data
+     * @param out_cloud_ptr : Pointer to pcl PointCloud data
+     */
     void CalibNode::preprocessingCloud(
-        const pointcloud2::ConstSharedPtr& sensor_msg, pcl::PointCloud<pointT>::Ptr out_cloud_ptr)
+        const PointCloud2::ConstSharedPtr& sensor_msg, pcl::PointCloud<pointT>::Ptr out_cloud_ptr)
     {
         // Convert ROS message to PCL PointCloud format using PointXYZI representation
         pcl::PCLPointCloud2 pcl_cloud;
@@ -129,6 +138,12 @@ namespace extrinsic
         crop_filter.filter(*out_cloud_ptr);
     }
 
+    /**
+     * @brief SAC-RANSAC segmentation for detection and removal ground plane
+     * 
+     * @param cloud_ptr : Pointer to pcl PointCloud data
+     * @param out_cloud_ptr : Pointer to pcl PointCloud data
+     */
     void CalibNode::groundSegmentation(
         pcl::PointCloud<pointT>::Ptr cloud_ptr, pcl::PointCloud<pointT>::Ptr non_plane_ptr)
     {   
@@ -173,6 +188,9 @@ namespace extrinsic
         }
     }
 
+    /**
+     * @brief Write the best extrinsic matrix, based on the fitness score, into the yaml configuration file
+     */
     void CalibNode::writeConfig()
     {
         YAML::Emitter emitter;
@@ -196,8 +214,14 @@ namespace extrinsic
         fout << emitter.c_str();
     }
 
+    /**
+     * @brief Callback function to handle with  synchronize data from multiple sensors
+     * 
+     * @param sensor1_msg : ROS2 PointCloud2 data
+     * @param sensor2_msg : ROS2 PointCloud2 data
+     */
     void CalibNode::sensorsCallback(
-        const pointcloud2::ConstSharedPtr& sensor1_msg, const pointcloud2::ConstSharedPtr& sensor2_msg)
+        const PointCloud2::ConstSharedPtr& sensor1_msg, const PointCloud2::ConstSharedPtr& sensor2_msg)
     {
         pcl::PointCloud<pointT>::Ptr pcl_pointcloud1(new pcl::PointCloud<pointT>);   // Parent Cloud
         pcl::PointCloud<pointT>::Ptr pcl_pointcloud2(new pcl::PointCloud<pointT>);   // Child Cloud
@@ -227,12 +251,6 @@ namespace extrinsic
         icp.setInputSource(non_plane2);
         icp.setInputTarget(non_plane1);
 
-        /*RCLCPP_INFO(get_logger(), "Transformation matrix:\n%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n",
-            extrinsic_matrix_(0, 0), extrinsic_matrix_(0, 1), extrinsic_matrix_(0, 2), extrinsic_matrix_(0, 3),
-            extrinsic_matrix_(1, 0), extrinsic_matrix_(1, 1), extrinsic_matrix_(1, 2), extrinsic_matrix_(1, 3),
-            extrinsic_matrix_(2, 0), extrinsic_matrix_(2, 1), extrinsic_matrix_(2, 2), extrinsic_matrix_(2, 3),
-            extrinsic_matrix_(3, 0), extrinsic_matrix_(3, 1), extrinsic_matrix_(3, 2), extrinsic_matrix_(3, 3));*/
-
         icp.align(*output_cloud, extrinsic_matrix_);
 
         if (icp.hasConverged())
@@ -261,15 +279,15 @@ namespace extrinsic
  
         if (vis_status_)
         {
-            pointcloud2 cloud1_msg;
+            PointCloud2 cloud1_msg;
             pcl::toROSMsg(*non_plane1, cloud1_msg);
             cloud1_msg.header.frame_id = pcl_pointcloud1->header.frame_id;
 
-            pointcloud2 cloud2_msg;
+            PointCloud2 cloud2_msg;
             pcl::toROSMsg(*output_cloud, cloud2_msg);
             cloud2_msg.header.frame_id = pcl_pointcloud1->header.frame_id;
 
-            pointcloud2 cloud3_msg;
+            PointCloud2 cloud3_msg;
             pcl::PointCloud<pointT>::Ptr transformedCloud(new pcl::PointCloud<pointT>());
             pcl::PointCloud<pointT>::Ptr Cloud(new pcl::PointCloud<pointT>());
             pcl::transformPointCloud(*pcl_pointcloud2, *transformedCloud, extrinsic_matrix_);

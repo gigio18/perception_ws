@@ -10,8 +10,6 @@ def generate_launch_description():
         'calibration.yaml'
     )
 
-    print(config_file)
-
     return LaunchDescription([
         Node(
             package ="extrinsic_calibration",
@@ -22,6 +20,3 @@ def generate_launch_description():
             parameters=[config_file]
         )
     ])
-
-    ld.add_action(node)
-    return ld

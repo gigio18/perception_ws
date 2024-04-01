@@ -64,15 +64,15 @@ namespace extrinsic
     {
         public:
             // Aliases for specify namespaces
-            using pointcloud2 = sensor_msgs::msg::PointCloud2;
-            using sensor_policy = message_filters::sync_policies::ApproximateTime<pointcloud2, pointcloud2>;
+            using PointCloud2 = sensor_msgs::msg::PointCloud2;
+            using sensor_policy = message_filters::sync_policies::ApproximateTime<PointCloud2, PointCloud2>;
             using sensor_sync = message_filters::Synchronizer<sensor_policy>;
             using pointT = pcl::PointXYZI;
 
             // Publishers topics (only for visualization)
-            rclcpp::Publisher<pointcloud2>::SharedPtr rviz_cloud1_pub_;    // Sensor1 cloud 
-            rclcpp::Publisher<pointcloud2>::SharedPtr rviz_cloud2_pub_;    // Sensor2 transformed cloud
-            rclcpp::Publisher<pointcloud2>::SharedPtr rviz_combined_pub_;  // Combined cloud  
+            rclcpp::Publisher<PointCloud2>::SharedPtr rviz_cloud1_pub_;    // Sensor1 cloud 
+            rclcpp::Publisher<PointCloud2>::SharedPtr rviz_cloud2_pub_;    // Sensor2 transformed cloud
+            rclcpp::Publisher<PointCloud2>::SharedPtr rviz_combined_pub_;  // Combined cloud  
 
             /**
              * @brief Constructor
@@ -124,8 +124,8 @@ namespace extrinsic
             double fitness_score_;
 
             // Sensors topics synchronizers subscribers
-            std::shared_ptr<message_filters::Subscriber<pointcloud2>> sensor1_sub_;
-            std::shared_ptr<message_filters::Subscriber<pointcloud2>> sensor2_sub_;
+            std::shared_ptr<message_filters::Subscriber<PointCloud2>> sensor1_sub_;
+            std::shared_ptr<message_filters::Subscriber<PointCloud2>> sensor2_sub_;
             std::shared_ptr<sensor_sync> sensor_sync_;
 
             // Methods
@@ -136,12 +136,18 @@ namespace extrinsic
 
             /**
              * @brief Preprocessing step the sensors point cloud data
+             * 
+             * @param sensor_msg : ROS2 PointCloud2 data
+             * @param out_cloud_ptr : Pointer to pcl PointCloud data
              */
             void preprocessingCloud(
-                const pointcloud2::ConstSharedPtr& sensor_msg, pcl::PointCloud<pointT>::Ptr out_cloud_ptr);
+                const PointCloud2::ConstSharedPtr& sensor_msg, pcl::PointCloud<pointT>::Ptr out_cloud_ptr);
 
             /**
              * @brief SAC-RANSAC segmentation for detection and removal ground plane
+             * 
+             * @param cloud_ptr : Pointer to pcl PointCloud data
+             * @param out_cloud_ptr : Pointer to pcl PointCloud data
              */
             void groundSegmentation(
                 pcl::PointCloud<pointT>::Ptr cloud_ptr, pcl::PointCloud<pointT>::Ptr out_cloud_ptr);
@@ -153,9 +159,12 @@ namespace extrinsic
 
             /**
              * @brief Callback function to handle with  synchronize data from multiple sensors
+             * 
+             * @param sensor_msg1 : ROS2 PointCloud2 data
+             * @param sensor_msg2 : ROS2 PointCloud2 data
              */
             void sensorsCallback(
-                const pointcloud2::ConstSharedPtr& sensor_msg1, const pointcloud2::ConstSharedPtr& sensor_msg2);
+                const PointCloud2::ConstSharedPtr& sensor_msg1, const PointCloud2::ConstSharedPtr& sensor_msg2);
     };
 
 } //namespace extrinsic
